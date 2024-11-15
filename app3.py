@@ -55,7 +55,9 @@ if openai_api_key:
 
     if user_input:
         if "text" in user_input:
-            st.session_state.messages.append({"role":"user","content": user_input['text']})
+             with st.chat_message("user"):
+                resp_text_user = st.write_stream(text_generator(user_input['text']))
+                st.session_state.messages.append({"role":"user","content": user_input['text']})
         elif "audioFile" in user_input:
             audio_stream = io.BytesIO(bytes(user_input['audioFile']))
             audio_stream.name = "a.mp3"
