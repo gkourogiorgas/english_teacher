@@ -55,9 +55,7 @@ if openai_api_key:
 
     if user_input:
         if "text" in user_input:
-             with st.chat_message("user"):
-                resp_text_user = st.write_stream(text_generator(user_input['text']))
-                st.session_state.messages.append({"role":"user","content": user_input['text']})
+            resp_user = user_input['text']
         elif "audioFile" in user_input:
             audio_stream = io.BytesIO(bytes(user_input['audioFile']))
             audio_stream.name = "a.mp3"
@@ -65,11 +63,12 @@ if openai_api_key:
             transcript = client.audio.transcriptions.create(
             model="whisper-1",
             file=audio_file_io)
-            with st.chat_message("user"):
-                resp_user = st.write_stream(text_generator(transcript.text))
-                st.session_state.messages.append({"role":"user","content":resp_user})
-            with st.chat_message("assistant"):
-                resp = st.write_stream(response_generator())
-                st.session_state.messages.append({"role": "assistant", "content": resp})
+            resp_user = transcript.text
+        with st.chat_message("user"):
+            resp_user_stream = st.write_stream(text_generator(resp_user))
+            st.session_state.messages.append({"role":"user","content":resp_user_stream})
+        with st.chat_message("assistant"):
+            resp_assistant = st.write_stream(response_generator())
+            st.session_state.messages.append({"role": "assistant", "content": resp_assistant})
 else:
     st.write("Please add your openai api key")
