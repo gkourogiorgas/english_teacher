@@ -48,12 +48,11 @@ st.title("My English Teacher")
 if "messages" not in st.session_state:
     init_messages()
 
-# Display chat messages from history on app rerun
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
 if openai_api_key:
+    # Display chat messages from history on app rerun
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
     with bottom():
         with st.container():
             left, right = st.columns([0.9, 0.1])
