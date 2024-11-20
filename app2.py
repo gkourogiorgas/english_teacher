@@ -31,7 +31,7 @@ def response_generator():
                 {"role": m["role"], "content": m["content"]}
                 for m in st.session_state.messages
             ]
-            , stream=True)
+            , stream=False)
     return response
 
 def text_generator(text):
@@ -63,9 +63,9 @@ if openai_api_key:
             model="whisper-1",
             file=audio_file_io)
             resp_user = transcript.text
-        resp_user_stream = st.write_stream(text_generator(resp_user))
+        resp_user_stream = st.write_stream(text_generator(f"user: {resp_user}"))
         st.session_state.messages.append({"role":"user","content":resp_user_stream})
-        resp_assistant = st.write_stream(response_generator())
+        resp_assistant = st.write_stream(text_generator(f"assistant: {response_generator().choices[0].message.content}"))
         st.session_state.messages.append({"role": "assistant", "content": resp_assistant})
 else:
     st.write("Please add your openai api key")

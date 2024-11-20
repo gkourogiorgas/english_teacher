@@ -1,13 +1,9 @@
 import streamlit as st
 from streamlit_extras.bottom_container import bottom # to position the widget on the bottom 
-from streamlit_mic_recorder import mic_recorder
+from streamlit_chat_widget import chat_input_widget
 from openai import OpenAI
 import io
 import time
-
-red_square = "\U0001F7E5"
-microphone = "\U0001F3A4"
-play_button = "\U000025B6"
 
 def init_messages():
     st.session_state.messages = [{"role":"assistant","content": 'Hi! I am an English assistant. Talk to me and I will help you to improve!'}]
@@ -55,24 +51,13 @@ for message in st.session_state.messages:
 
 if openai_api_key:
     with bottom():
-        with st.container():
-            left, right = st.columns([0.9, 0.1])
-            with left:
-                user_input = st.chat_input()
-            with right:
-                user_input = mic_recorder(
-            key=None,
-            start_prompt=play_button + microphone,
-            stop_prompt=red_square,
-            just_once=True,
-            use_container_width=True,
-        )
+        user_input = chat_input_widget()
 
     if user_input:
-        if isinstance(user_input,str):
-            resp_user = user_input
-        else:
-            audio_stream = io.BytesIO(user_input['bytes'])
+        if "text" in user_input:
+            resp_user = user_input['text']
+        elif "audioFile" in user_input:
+            audio_stream = io.BytesIO(bytes(user_input['audioFile']))
             audio_stream.name = "a.mp3"
             audio_file_io = io.BufferedReader(audio_stream)
             transcript = client.audio.transcriptions.create(
