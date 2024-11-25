@@ -4,6 +4,11 @@ from streamlit_mic_recorder import mic_recorder
 from openai import OpenAI
 import io
 import time
+from deepgram import (
+    DeepgramClient,
+    PrerecordedOptions,
+    FileSource,
+)
 
 red_square = "\U0001F7E5"
 microphone = "\U0001F3A4"
@@ -13,23 +18,31 @@ def init_messages():
     st.session_state.messages = [{"role":"assistant","content": 'Hi! I am an English assistant. Talk to me and I will help you to improve!'}]
 
 with st.sidebar:
-    openai_api_key = st.text_input("OpenAI API Key", type="password")
+    stt_model = st.selectbox("Select STT Model", ["whisper-1", "deepgram"])
+    llm = st.selectbox("Select LLM", ["gpt-4", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"])
+    if stt_model == "whisper-1" or llm:
+        openai_api_key = st.text_input("OpenAI API Key", type="password")
+        if openai_api_key:
+            openai_client = OpenAI(api_key=openai_api_key)
+    if stt_model == "deepgram":
+        deepgram_api_key = st.text_input("Deepgram API Key", type="password")
+        if deepgram_api_key:
+            deepgram_client = DeepgramClient(deepgram_api_key)
     if st.button("Clear Chat"):
         init_messages()
         st.rerun()
-
-if openai_api_key:
-    client = OpenAI(api_key=openai_api_key)
 
 SYSTEM_PROMPT = """
 You are a helpful English teacher. 
 Your job is to converse with the non-english native student and politely correct his english mistakes if there are any.
 If not then continue a nice conversation trying to engage the student to speak and practice his english.
+If you believe there is a better way for the student to say what he/she is trying to say, please provide the correct way.
+Suggest more suitable vocabulary and phrases to the student if you think they are appropriate.
 """
 
 def response_generator():
-    response = client.chat.completions.create(
-        model = 'gpt-4',
+    response = openai_client.chat.completions.create(
+        model = llm,
         messages=[{"role": "system", "content": ""}]+
             [
                 {"role": m["role"], "content": m["content"]}
@@ -74,10 +87,28 @@ if openai_api_key:
             audio_stream = io.BytesIO(user_input['bytes'])
             audio_stream.name = "a.mp3"
             audio_file_io = io.BufferedReader(audio_stream)
-            transcript = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file_io)
-            resp_user = transcript.text
+            if stt_model == "whisper-1":
+                transcript = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file_io)
+                resp_user = transcript.text
+            elif stt_model == "deepgram":
+                payload: FileSource = {
+            "buffer": audio_file_io,
+        }
+
+        #STEP 2: Configure Deepgram options for audio analysis
+            options = PrerecordedOptions(
+                model="nova-2",
+                smart_format=True,
+            )
+
+            # STEP 3: Call the transcribe_file method with the text payload and options
+            response = deepgram_client.listen.rest.v("1").transcribe_file(payload, options)
+
+            # STEP 4: Print the response
+            print(response.to_json(indent=4))
+            resp_user = response['results']['channels'][0]['alternatives'][0]['transcript']
         with st.chat_message("user"):
             resp_user_stream = st.write_stream(text_generator(resp_user))
             st.session_state.messages.append({"role":"user","content":resp_user_stream})
