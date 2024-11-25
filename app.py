@@ -9,7 +9,19 @@ from deepgram import (
     PrerecordedOptions,
     FileSource,
 )
-
+DEEPGRAM_MODELS = [
+    "nova-2",
+    "nova-2-conversationalai",
+    "nova-2-phonecall",
+]
+OPENAI_AUDIO_MODELS = [
+    "whisper-1"
+]
+OPENAI_LLMS = [
+    "gpt-4",
+    "chatgpt-4o-latest",
+    "gpt-3.5-turbo-1106"
+]
 red_square = "\U0001F7E5"
 microphone = "\U0001F3A4"
 play_button = "\U000025B6"
@@ -18,13 +30,13 @@ def init_messages():
     st.session_state.messages = [{"role":"assistant","content": 'Hi! I am an English assistant. Talk to me and I will help you to improve!'}]
 
 with st.sidebar:
-    stt_model = st.selectbox("Select STT Model", ["whisper-1", "deepgram"])
-    llm = st.selectbox("Select LLM", ["gpt-4", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"])
-    if stt_model == "whisper-1" or llm:
+    stt_model = st.selectbox("Select STT Model", OPENAI_AUDIO_MODELS + DEEPGRAM_MODELS)
+    llm = st.selectbox("Select LLM", OPENAI_LLMS)
+    if stt_model in OPENAI_AUDIO_MODELS or llm in OPENAI_LLMS:
         openai_api_key = st.text_input("OpenAI API Key", type="password")
         if openai_api_key:
             openai_client = OpenAI(api_key=openai_api_key)
-    if stt_model == "deepgram":
+    if stt_model in DEEPGRAM_MODELS:
         deepgram_api_key = st.text_input("Deepgram API Key", type="password")
         if deepgram_api_key:
             deepgram_client = DeepgramClient(deepgram_api_key)
@@ -87,19 +99,18 @@ if openai_api_key:
             audio_stream = io.BytesIO(user_input['bytes'])
             audio_stream.name = "a.mp3"
             audio_file_io = io.BufferedReader(audio_stream)
-            if stt_model == "whisper-1":
+            if stt_model in OPENAI_AUDIO_MODELS:
                 transcript = client.audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_file_io)
                 resp_user = transcript.text
-            elif stt_model == "deepgram":
+            elif stt_model in DEEPGRAM_MODELS:
                 payload: FileSource = {
-            "buffer": audio_file_io,
-        }
+            "buffer": audio_file_io,}
 
-        #STEP 2: Configure Deepgram options for audio analysis
+            #STEP 2: Configure Deepgram options for audio analysis
             options = PrerecordedOptions(
-                model="nova-2",
+                model=stt_model,
                 smart_format=True,
             )
 
